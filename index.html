@@ -156,8 +156,6 @@
   }
 
   .q-count{ font-family:'Space Mono', monospace; font-size:0.78rem; color: var(--sage); letter-spacing:0.08em; }
-  .q-clue{ font-size: 1.08rem; line-height:1.5; }
-  .q-clue em{ color: var(--berry-deep); font-style: normal; font-weight:700; }
 
   .options{ display:flex; flex-direction:column; gap:10px; }
   .opt{
@@ -188,6 +186,41 @@
   .feedback{ font-size:0.92rem; color: var(--ink-dim); min-height: 1.4em; }
   .feedback.show-good{ color: var(--sage); font-weight:700; }
   .feedback.show-bad{ color: var(--berry-deep); font-weight:700; }
+
+  /* ---- Blind test player ---- */
+  .loading-row{
+    display:flex; align-items:center; gap:10px;
+    color: var(--ink-dim); font-family:'Space Mono', monospace; font-size:0.8rem;
+    padding: 10px 0;
+  }
+  .spinner{
+    width:16px; height:16px; border-radius:50%; flex:none;
+    border:2px solid var(--line); border-top-color: var(--berry);
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin{ to{ transform: rotate(360deg); } }
+
+  .player{ display:flex; align-items:center; gap:16px; }
+  .play-btn{
+    width:60px; height:60px; border-radius:50%; flex:none;
+    background: linear-gradient(135deg, var(--berry), var(--berry-deep));
+    color: var(--paper); border:none; font-size:1.3rem; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow: 0 10px 24px -8px rgba(194,68,99,0.5);
+    transition: transform 0.15s ease;
+  }
+  .play-btn:active{ transform: scale(0.94); }
+  .play-btn:focus-visible{ outline: 2px solid var(--berry); outline-offset:3px; }
+  .player-meta{ flex:1; display:flex; flex-direction:column; gap:8px; min-width:0; }
+  .player-track-bar{ height:6px; border-radius:4px; background: var(--line); overflow:hidden; }
+  .player-track-bar i{ display:block; height:100%; width:0%; background: linear-gradient(90deg, var(--rose), var(--berry)); }
+  .player-time{ font-family:'Space Mono', monospace; font-size:0.72rem; color: var(--ink-dim); }
+
+  .reveal-mini{ display:flex; align-items:center; gap:10px; margin-top:2px; }
+  .reveal-mini img{ width:38px; height:38px; border-radius:8px; flex:none; box-shadow:0 4px 10px -4px rgba(71,48,44,0.4); }
+  .reveal-mini span{ font-size:0.86rem; color: var(--ink-dim); }
+
+  .source-note{ text-align:center; color: var(--ink-dim); font-size:0.7rem; margin:0; }
 
   /* ---- Result ---- */
   .score-badge{
@@ -315,7 +348,7 @@
     <div class="title-block">
       <p class="eyebrow">Blind test exclusif</p>
       <h1>Zazou, prouve<br>que t'es une vraie fan.</h1>
-      <p class="sub">6 indices, 4 réponses possibles à chaque fois. Si tu reconnais bien <strong>tous ces tubes</strong>, une petite surprise t'attend juste après.</p>
+      <p class="sub">Un vrai blind test : 6 extraits audio à deviner, 4 réponses possibles à chaque fois. Si tu reconnais bien <strong>tous ces tubes</strong>, une petite surprise t'attend juste après.</p>
     </div>
     <button class="btn btn-primary btn-block" id="btn-start">Je suis prête, on y va 🎤</button>
     <p class="foot-note">Aucune triche possible. On te surveille. (Pas vraiment.)</p>
@@ -325,11 +358,20 @@
   <section id="screen-quiz" class="screen" hidden>
     <div class="progress-row" id="progress-row"></div>
     <div class="card">
-      <p class="q-count" id="q-count">QUESTION 1 / 6</p>
-      <p class="q-clue" id="q-clue"></p>
+      <p class="q-count" id="q-count">SON 1 / 6</p>
+      <div class="loading-row" id="q-loading"><span class="spinner" aria-hidden="true"></span> Chargement de l'extrait…</div>
+      <div class="player" id="q-player" hidden>
+        <button type="button" class="play-btn" id="btn-play" aria-label="Écouter l'extrait">▶</button>
+        <div class="player-meta">
+          <div class="player-track-bar"><i id="player-bar"></i></div>
+          <span class="player-time" id="player-time">0:00 / 0:00</span>
+        </div>
+      </div>
+      <audio id="q-audio" preload="none"></audio>
       <div class="options" id="q-options"></div>
       <p class="feedback" id="q-feedback"></p>
     </div>
+    <p class="source-note">🎧 Extraits audio fournis par Deezer</p>
   </section>
 
   <!-- ============ RESULT ============ -->
@@ -404,40 +446,28 @@
 (function(){
   "use strict";
 
-  var QUESTIONS = [
-    {
-      clue: "Indice : le titre compare une personne à un astre qu'on ne voit jamais deux fois pareil dans le ciel — et le refrain le confirme, <em>on n'en a qu'une</em>, comme les mamans.",
-      options: ["Formidable", "Je veux", "La Lune", "Avenir"],
-      answer: "La Lune"
-    },
-    {
-      clue: "Indice : bien avant les paillettes, il portait une toque et pesait la farine chaque matin dans la boulangerie-pâtisserie familiale. Quel métier faisait-il ?",
-      options: ["Pâtissier", "Menuisier", "Maître-nageur", "Professeur de guitare"],
-      answer: "Pâtissier"
-    },
-    {
-      clue: "Indice : LE tube que toute la France a fredonné au moins une fois, sur ces liens qu'on tisse avec les gens et les habitudes, même quand on ne le veut pas.",
-      options: ["Viens on s'aime", "On s'attache", "Roméo kiffe Juliette", "Color Gitano"],
-      answer: "On s'attache"
-    },
-    {
-      clue: "Indice : direction le sud-est, en plein cœur du Vaucluse. Dans quelle ville est-il né en 1975 ?",
-      options: ["Carpentras", "Avignon", "Marseille", "Nice"],
-      answer: "Carpentras"
-    },
-    {
-      clue: "Indice : le refrain qui pose LA question existentielle en dansant, celle qu'on se pose tous un jour en cherchant ce petit truc insaisissable.",
-      options: ["J'ai cherché", "Pas là", "Il est où le bonheur", "Paris-Seychelles"],
-      answer: "Il est où le bonheur"
-    },
-    {
-      clue: "Indice : « Maé » est un nom de scène. Sur sa carte d'identité, c'est un tout autre nom de famille qui est écrit. Lequel ?",
-      options: ["Martichon", "Bertrand", "Lefèvre", "Girard"],
-      answer: "Martichon"
-    }
+  // Manches du blind test (titres réels, extraits récupérés en direct sur Deezer)
+  var ROUNDS = [
+    "La lune",
+    "On s'attache",
+    "Il est où le bonheur",
+    "Belle demoiselle",
+    "Dingue, dingue, dingue",
+    "Comment on s'aime"
+  ];
+
+  // Pool de titres réels utilisés comme mauvaises réponses
+  var DECOY_POOL = [
+    "La lune", "J'ai laissé", "On s'attache", "Tombé sous le charme",
+    "Belle demoiselle", "Parce qu'on sait jamais", "Casting",
+    "Y'a que de l'amour chez toi", "Dingue, dingue, dingue", "Je me lâche",
+    "Et un jour une femme", "Fête foraine", "Il est où le bonheur",
+    "L'amour", "Adieu mon amour", "La Poupée", "Une star", "Ça marche",
+    "La vie d'artiste", "Comment on s'aime"
   ];
 
   var state = { i: 0, score: 0, answered: false };
+  var currentTrack = null;
 
   var elIntro = document.getElementById('screen-intro');
   var elQuiz = document.getElementById('screen-quiz');
@@ -446,13 +476,68 @@
 
   var elProgress = document.getElementById('progress-row');
   var elQCount = document.getElementById('q-count');
-  var elQClue = document.getElementById('q-clue');
+  var elQLoading = document.getElementById('q-loading');
+  var elQPlayer = document.getElementById('q-player');
+  var elBtnPlay = document.getElementById('btn-play');
+  var elPlayerBar = document.getElementById('player-bar');
+  var elPlayerTime = document.getElementById('player-time');
+  var elAudio = document.getElementById('q-audio');
   var elQOptions = document.getElementById('q-options');
   var elQFeedback = document.getElementById('q-feedback');
 
+  function shuffle(arr){
+    var a = arr.slice();
+    for(var k = a.length - 1; k > 0; k--){
+      var j = Math.floor(Math.random() * (k + 1));
+      var tmp = a[k]; a[k] = a[j]; a[j] = tmp;
+    }
+    return a;
+  }
+
+  function fmtTime(sec){
+    sec = Math.max(0, Math.floor(sec || 0));
+    var m = Math.floor(sec / 60);
+    var s = sec % 60;
+    return m + ':' + (s < 10 ? '0' : '') + s;
+  }
+
+  // ---- Récupération des extraits via l'API Deezer (JSONP, pas de clé requise) ----
+  var jsonpCounter = 0;
+  function deezerSearch(query){
+    return new Promise(function(resolve, reject){
+      var cbName = '__dzcb_' + (jsonpCounter++) + '_' + Date.now();
+      var script = document.createElement('script');
+      var timeoutId = setTimeout(function(){ cleanup(); reject(new Error('timeout')); }, 8000);
+      function cleanup(){
+        clearTimeout(timeoutId);
+        delete window[cbName];
+        if(script.parentNode) script.parentNode.removeChild(script);
+      }
+      window[cbName] = function(data){ cleanup(); resolve(data); };
+      script.onerror = function(){ cleanup(); reject(new Error('network')); };
+      script.src = 'https://api.deezer.com/search?q=' + encodeURIComponent(query) + '&output=jsonp&callback=' + cbName;
+      document.head.appendChild(script);
+    });
+  }
+
+  function fetchTrackPreview(title){
+    return deezerSearch('Christophe Maé ' + title).then(function(data){
+      if(!data || !data.data || !data.data.length || !data.data[0].preview){
+        throw new Error('no result for ' + title);
+      }
+      var t = data.data[0];
+      return {
+        title: title,
+        preview: t.preview,
+        cover: t.album && t.album.cover_medium,
+        artist: t.artist && t.artist.name
+      };
+    });
+  }
+
   function buildProgress(){
     elProgress.innerHTML = '';
-    for(var k=0;k<QUESTIONS.length;k++){
+    for(var k=0;k<ROUNDS.length;k++){
       var d = document.createElement('div');
       d.className = 'prog-dot';
       d.innerHTML = '<i></i>';
@@ -467,42 +552,99 @@
     }
   }
 
-  function renderQuestion(){
+  function resetAudio(){
+    try{ elAudio.pause(); }catch(e){}
+    elAudio.removeAttribute('src');
+    elAudio.load();
+    elPlayerBar.style.width = '0%';
+    elPlayerTime.textContent = '0:00 / 0:00';
+    elBtnPlay.textContent = '▶';
+  }
+
+  function renderRound(){
     state.answered = false;
-    var q = QUESTIONS[state.i];
-    elQCount.textContent = 'QUESTION ' + (state.i+1) + ' / ' + QUESTIONS.length;
-    elQClue.innerHTML = q.clue;
+    currentTrack = null;
+    var title = ROUNDS[state.i];
+    elQCount.textContent = 'SON ' + (state.i + 1) + ' / ' + ROUNDS.length;
     elQFeedback.textContent = '';
     elQFeedback.className = 'feedback';
     elQOptions.innerHTML = '';
+    elQPlayer.hidden = true;
+    elQLoading.hidden = false;
+    resetAudio();
     updateProgress();
 
-    q.options.forEach(function(opt){
+    fetchTrackPreview(title).then(function(track){
+      currentTrack = track;
+      elAudio.src = track.preview;
+      elQLoading.hidden = true;
+      elQPlayer.hidden = false;
+      buildOptions(title);
+    }).catch(function(){
+      elQLoading.hidden = true;
+      elQFeedback.textContent = "L'extrait audio n'a pas pu être chargé pour cette manche, mais tu peux quand même tenter ta chance !";
+      elQFeedback.className = 'feedback';
+      buildOptions(title);
+    });
+  }
+
+  function buildOptions(correctTitle){
+    var decoys = shuffle(DECOY_POOL.filter(function(t){ return t !== correctTitle; })).slice(0, 3);
+    var options = shuffle([correctTitle].concat(decoys));
+
+    elQOptions.innerHTML = '';
+    options.forEach(function(opt){
       var b = document.createElement('button');
       b.className = 'opt';
       b.type = 'button';
       b.innerHTML = '<span>' + opt + '</span><span class="mark"></span>';
-      b.addEventListener('click', function(){ selectOption(b, opt, q.answer); });
+      b.addEventListener('click', function(){ selectOption(b, opt, correctTitle); });
       elQOptions.appendChild(b);
     });
   }
 
+  elBtnPlay.addEventListener('click', function(){
+    if(!elAudio.src) return;
+    if(elAudio.paused){
+      elAudio.play();
+      elBtnPlay.textContent = '⏸';
+    } else {
+      elAudio.pause();
+      elBtnPlay.textContent = '▶';
+    }
+  });
+
+  elAudio.addEventListener('timeupdate', function(){
+    if(!elAudio.duration) return;
+    elPlayerBar.style.width = (elAudio.currentTime / elAudio.duration * 100) + '%';
+    elPlayerTime.textContent = fmtTime(elAudio.currentTime) + ' / ' + fmtTime(elAudio.duration);
+  });
+  elAudio.addEventListener('ended', function(){ elBtnPlay.textContent = '▶'; });
+  elAudio.addEventListener('pause', function(){ elBtnPlay.textContent = '▶'; });
+  elAudio.addEventListener('play', function(){ elBtnPlay.textContent = '⏸'; });
+
   function selectOption(btn, chosen, correct){
     if(state.answered) return;
     state.answered = true;
+    try{ elAudio.pause(); }catch(e){}
     var buttons = elQOptions.querySelectorAll('.opt');
     buttons.forEach(function(b){ b.disabled = true; });
+
+    var infoHtml = '';
+    if(currentTrack && currentTrack.cover){
+      infoHtml = '<div class="reveal-mini"><img src="' + currentTrack.cover + '" alt=""><span>' + correct + (currentTrack.artist ? ' — ' + currentTrack.artist : '') + '</span></div>';
+    }
 
     if(chosen === correct){
       btn.classList.add('correct');
       btn.querySelector('.mark').textContent = '✓';
-      elQFeedback.textContent = 'Exact ! Vraie fan confirmée.';
+      elQFeedback.innerHTML = 'Exact ! Vraie fan confirmée.' + infoHtml;
       elQFeedback.className = 'feedback show-good';
       state.score++;
     } else {
       btn.classList.add('wrong');
       btn.querySelector('.mark').textContent = '✕';
-      elQFeedback.textContent = 'Presque... c'+"'"+'était "' + correct + '".';
+      elQFeedback.innerHTML = 'Presque... c'+"'"+'était "' + correct + '".' + infoHtml;
       elQFeedback.className = 'feedback show-bad';
       buttons.forEach(function(b){
         if(b.querySelector('span').textContent === correct){
@@ -514,12 +656,12 @@
 
     setTimeout(function(){
       state.i++;
-      if(state.i < QUESTIONS.length){
-        renderQuestion();
+      if(state.i < ROUNDS.length){
+        renderRound();
       } else {
         showResult();
       }
-    }, 1250);
+    }, 2600);
   }
 
   function showResult(){
@@ -529,7 +671,7 @@
 
     var title = document.getElementById('result-title');
     var copy = document.getElementById('result-copy');
-    if(state.score === QUESTIONS.length){
+    if(state.score === ROUNDS.length){
       title.textContent = 'Sans faute. 🏆';
       copy.textContent = "6/6, on n'attendait pas moins de toi. Tu as bien mérité ce qui suit.";
     } else if(state.score >= 4){
@@ -574,7 +716,7 @@
     elIntro.hidden = true;
     elQuiz.hidden = false;
     buildProgress();
-    renderQuestion();
+    renderRound();
   });
 
   document.getElementById('btn-continue').addEventListener('click', showReveal);
