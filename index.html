@@ -346,7 +346,7 @@
     <div class="title-block">
       <p class="eyebrow">Blind test</p>
       <h1>Choisis ton artiste</h1>
-      <p class="sub">6 extraits audio à deviner, 4 réponses possibles à chaque manche. Repère tous les tubes pour débloquer la suite.</p>
+      <p class="sub">10 extraits audio à deviner, 4 réponses possibles à chaque manche. Repère tous les tubes pour débloquer la suite.</p>
     </div>
     <div class="artist-grid" id="artist-grid">
       <button type="button" class="artist-card" data-artist="Ninho">
@@ -395,7 +395,7 @@
       <p class="eyebrow">Résultat</p>
       <h2 id="result-title" style="font-size:1.8rem;">Verdict</h2>
     </div>
-    <div class="score-badge"><span id="score-num">0</span><span>/ 6 bonnes réponses</span></div>
+    <div class="score-badge"><span id="score-num">0</span><span>/ <span id="score-total">10</span> bonnes réponses</span></div>
     <p class="sub" id="result-copy" style="text-align:center; color:var(--ink-dim);"></p>
     <button class="btn btn-primary btn-block" id="btn-continue">Voir ma récompense</button>
   </section>
@@ -462,13 +462,18 @@
   "use strict";
 
   // Manches du blind test (titres réels, extraits récupérés en direct sur Deezer)
+  // 6 tubes connus + 4 titres plus difficiles (moins connus)
   var ROUNDS = [
     "La lune",
     "On s'attache",
+    "Charly",
     "Il est où le bonheur",
+    "Manon",
     "Belle demoiselle",
     "Dingue, dingue, dingue",
-    "Comment on s'aime"
+    "L'ours",
+    "Comment on s'aime",
+    "Les gens"
   ];
 
   // Pool de titres réels utilisés comme mauvaises réponses
@@ -478,7 +483,10 @@
     "Y'a que de l'amour chez toi", "Dingue, dingue, dingue", "Je me lâche",
     "Et un jour une femme", "Fête foraine", "Il est où le bonheur",
     "L'amour", "Adieu mon amour", "La Poupée", "Une star", "Ça marche",
-    "La vie d'artiste", "Comment on s'aime"
+    "La vie d'artiste", "Comment on s'aime", "Charly", "Manon", "L'ours",
+    "Les gens", "Seul", "Besoin de personne", "50 ans déjà", "Dans ma tête",
+    "Bouquet de roses", "Marcel", "La parisienne", "Mon paradis",
+    "À qui la faute", "La Rumeur", "Pays des merveilles"
   ];
 
   var state = { i: 0, score: 0, answered: false };
@@ -683,13 +691,14 @@
     elQuiz.hidden = true;
     elResult.hidden = false;
     document.getElementById('score-num').textContent = state.score;
+    document.getElementById('score-total').textContent = ROUNDS.length;
 
     var title = document.getElementById('result-title');
     var copy = document.getElementById('result-copy');
     if(state.score === ROUNDS.length){
       title.textContent = 'Sans faute. 🏆';
-      copy.textContent = "6/6, on n'attendait pas moins de toi. Tu as bien mérité ce qui suit.";
-    } else if(state.score >= 4){
+      copy.textContent = ROUNDS.length + "/" + ROUNDS.length + ", on n'attendait pas moins de toi. Tu as bien mérité ce qui suit.";
+    } else if(state.score >= Math.ceil(ROUNDS.length * 0.6)){
       title.textContent = 'Très honorable !';
       copy.textContent = "Une vraie fan, quelques trous de mémoire, on te pardonne. La suite va te faire oublier ça.";
     } else {
