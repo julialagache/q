@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Le Jeu de Zazou</title>
+<title>Blind Test</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Nunito:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -77,31 +77,6 @@
   .screen{ display:flex; flex-direction:column; gap:22px; }
 
   /* ---- Intro ---- */
-  .heart-doodle{
-    width: 66px; height: 58px;
-    margin: 10px auto 0;
-    position: relative;
-    animation: heartbeat 2.4s ease-in-out infinite;
-  }
-  .heart-doodle::before, .heart-doodle::after{
-    content:'';
-    position:absolute;
-    top:0;
-    width: 36px; height: 56px;
-    background: var(--berry);
-    border-radius: 36px 36px 0 0;
-  }
-  .heart-doodle::before{ left: 33px; transform: rotate(-45deg); transform-origin: 0 100%; }
-  .heart-doodle::after{ left: 0; transform: rotate(45deg); transform-origin: 100% 100%; }
-  @keyframes heartbeat{
-    0%, 100%{ transform: scale(1); }
-    20%{ transform: scale(1.1); }
-    35%{ transform: scale(0.97); }
-    50%{ transform: scale(1.06); }
-    65%{ transform: scale(1); }
-  }
-  @media (prefers-reduced-motion: reduce){ .heart-doodle{ animation: none; } }
-
   .title-block{ text-align:center; display:flex; flex-direction:column; gap:8px; align-items:center; }
   .title-block h1{ font-size: clamp(2.3rem, 10vw, 3.1rem); line-height:1.05; color: var(--berry-deep); }
   .title-block .sub{ color: var(--ink-dim); font-size: 0.98rem; max-width: 40ch; }
@@ -315,6 +290,30 @@
 
   .foot-note{ text-align:center; color: var(--ink-dim); font-size:0.8rem; }
 
+  /* ---- Artist picker ---- */
+  .artist-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .artist-card{
+    position:relative;
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:18px 14px;
+    background: var(--paper);
+    display:flex; flex-direction:column; align-items:center; gap:10px;
+    cursor:pointer;
+    font-family:'Nunito', sans-serif;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .artist-card:hover{ transform: translateY(-2px); box-shadow: 0 14px 26px -14px rgba(71,48,44,0.35); }
+  .artist-card:focus-visible{ outline: 2px solid var(--berry); outline-offset:3px; }
+  .artist-avatar{
+    width:56px; height:56px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Bricolage Grotesque', system-ui, sans-serif;
+    font-weight:800; font-size:1.05rem; color: var(--paper);
+  }
+  .artist-name{ font-weight:800; font-size:0.92rem; color: var(--ink); text-align:center; }
+  .artist-note{ text-align:center; color: var(--ink-dim); font-size:0.85rem; min-height:1.3em; }
+
   .spotify-embed{
     border-radius:16px;
     overflow:hidden;
@@ -344,14 +343,30 @@
 
   <!-- ============ INTRO ============ -->
   <section id="screen-intro" class="screen">
-    <div class="heart-doodle" aria-hidden="true"></div>
     <div class="title-block">
-      <p class="eyebrow">Blind test exclusif</p>
-      <h1>Zazou, prouve<br>que t'es une vraie fan.</h1>
-      <p class="sub">Un vrai blind test : 6 extraits audio à deviner, 4 réponses possibles à chaque fois. Si tu reconnais bien <strong>tous ces tubes</strong>, une petite surprise t'attend juste après.</p>
+      <p class="eyebrow">Blind test</p>
+      <h1>Choisis ton artiste</h1>
+      <p class="sub">6 extraits audio à deviner, 4 réponses possibles à chaque manche. Repère tous les tubes pour débloquer la suite.</p>
     </div>
-    <button class="btn btn-primary btn-block" id="btn-start">Je suis prête, on y va 🎤</button>
-    <p class="foot-note">Aucune triche possible. On te surveille. (Pas vraiment.)</p>
+    <div class="artist-grid" id="artist-grid">
+      <button type="button" class="artist-card" data-artist="Ninho">
+        <span class="artist-avatar" style="background:#3B3F45;">N</span>
+        <span class="artist-name">Ninho</span>
+      </button>
+      <button type="button" class="artist-card" data-artist="Christophe Maé">
+        <span class="artist-avatar" style="background:#7C9473;">CM</span>
+        <span class="artist-name">Christophe Maé</span>
+      </button>
+      <button type="button" class="artist-card" data-artist="PLK">
+        <span class="artist-avatar" style="background:#5B4B8A;">PLK</span>
+        <span class="artist-name">PLK</span>
+      </button>
+      <button type="button" class="artist-card" data-artist="Black M">
+        <span class="artist-avatar" style="background:#C0752F;">BM</span>
+        <span class="artist-name">Black M</span>
+      </button>
+    </div>
+    <p class="artist-note" id="artist-note"></p>
   </section>
 
   <!-- ============ QUIZ ============ -->
@@ -712,7 +727,16 @@
     window.scrollTo({top:0, behavior:'smooth'});
   }
 
-  document.getElementById('btn-start').addEventListener('click', function(){
+  var elArtistNote = document.getElementById('artist-note');
+  document.getElementById('artist-grid').addEventListener('click', function(e){
+    var card = e.target.closest('.artist-card');
+    if(!card) return;
+
+    if(card.dataset.artist !== 'Christophe Maé'){
+      elArtistNote.textContent = 'Cet artiste arrive bientôt, réessaie plus tard 🔒';
+      return;
+    }
+
     elIntro.hidden = true;
     elQuiz.hidden = false;
     buildProgress();
