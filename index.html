@@ -310,7 +310,9 @@
     display:flex; align-items:center; justify-content:center;
     font-family:'Bricolage Grotesque', system-ui, sans-serif;
     font-weight:800; font-size:1.05rem; color: var(--paper);
+    overflow:hidden;
   }
+  .artist-avatar img{ width:100%; height:100%; object-fit:cover; }
   .artist-name{ font-weight:800; font-size:0.92rem; color: var(--ink); text-align:center; }
   .artist-note{ text-align:center; color: var(--ink-dim); font-size:0.85rem; min-height:1.3em; }
 
@@ -350,19 +352,19 @@
     </div>
     <div class="artist-grid" id="artist-grid">
       <button type="button" class="artist-card" data-artist="Ninho">
-        <span class="artist-avatar" style="background:#3B3F45;">N</span>
+        <span class="artist-avatar"><img src="ninho.jpg" alt=""></span>
         <span class="artist-name">Ninho</span>
       </button>
       <button type="button" class="artist-card" data-artist="Christophe Maé">
-        <span class="artist-avatar" style="background:#7C9473;">CM</span>
+        <span class="artist-avatar"><img src="christophe-mae.jpg" alt=""></span>
         <span class="artist-name">Christophe Maé</span>
       </button>
       <button type="button" class="artist-card" data-artist="PLK">
-        <span class="artist-avatar" style="background:#5B4B8A;">PLK</span>
+        <span class="artist-avatar"><img src="plk.jpg" alt=""></span>
         <span class="artist-name">PLK</span>
       </button>
       <button type="button" class="artist-card" data-artist="Black M">
-        <span class="artist-avatar" style="background:#C0752F;">BM</span>
+        <span class="artist-avatar"><img src="blackm.jpg" alt=""></span>
         <span class="artist-name">Black M</span>
       </button>
     </div>
